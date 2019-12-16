@@ -28,7 +28,7 @@ if args.demo:
 model_name = args.model_name
 params_dict=dict()
 
-gpu_num = 2
+gpu_num = 0
 device  = torch.device(f"cuda:{gpu_num}")
 torch.cuda.set_device(gpu_num)
 
