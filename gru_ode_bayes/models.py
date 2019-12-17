@@ -251,10 +251,14 @@ def init_weights(m):
             m.bias.data.fill_(0.05)
 
 class NNFOwithBayesianJumps(torch.nn.Module):
-    ## Neural Negative Feedback ODE with Bayesian jumps
-    def __init__(self, input_size, hidden_size, p_hidden, prep_hidden, bias=True, cov_size=1, cov_hidden=1, classification_hidden=1, logvar=True, mixing=1, dropout_rate=0, full_gru_ode=False, solver="euler", impute = True, **options):
+    """Neural Negative Feedback ODE with Bayesian jumps."""
+
+    def __init__(self, input_size, hidden_size, p_hidden, prep_hidden,
+                 bias=True, cov_size=1, cov_hidden=1, classification_hidden=1, logvar=True, mixing=1, dropout_rate=0,
+                 full_gru_ode=False, solver="euler", impute=True, **options):
         """
-        The smoother variable computes the classification loss as a weighted average of the projection of the latents at each observation.
+        The smoother variable computes the classification loss as a weighted average of the projection of the
+        latents at each observation.
         impute feeds the parameters of the distribution to GRU-ODE at each step.
         """
 

@@ -33,7 +33,9 @@ device  = torch.device(f"cuda:{gpu_num}")
 torch.cuda.set_device(gpu_num)
 
 #Dataset metadata
-metadata = np.load(f"{args.dataset[:-4]}_metadata.npy",allow_pickle=True).item()
+metadata = np.load(f"{args.dataset[:-4]}_metadata.npy", allow_pickle=True).item()
+
+assert(isinstance(metadata, dict))
 
 delta_t = metadata["delta_t"]
 T       = metadata["T"]

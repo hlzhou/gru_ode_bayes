@@ -5,3 +5,5 @@
 *results.csv*
 *.pt*
 *.npy*
+state*.txt
+*.idea*
