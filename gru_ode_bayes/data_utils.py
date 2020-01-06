@@ -32,7 +32,7 @@ class ODE_DatasetNumpy(Dataset):
             df_masks,
         ], axis=1)
         self.df.sort_values("Time", inplace=True)
-        self.length = self.df["ID"].nunique()
+        self.length = self.df["ID"].nunique()  # patient ID
         self.df.set_index("ID", inplace=True)
 
     def __len__(self):
@@ -194,7 +194,14 @@ class ODE_Dataset(Dataset):
         else:
             val_samples = None
         ## returning also idx to allow empty samples
-        return {"idx":idx, "y": tag, "path": subset, "cov": covs , "val_samples":val_samples, "store_last":self.store_last}
+        return {
+            "idx": idx,
+            "y": tag,
+            "path": subset,
+            "cov": covs,
+            "val_samples": val_samples,
+            "store_last": self.store_last
+        }
 
 def add_jitter(df, jitter_time=1e-3):
     """Modifies Double OU dataset, so that observations with both dimensions
@@ -233,7 +240,7 @@ def custom_collate_fn(batch):
 
     labels  = torch.tensor([b["y"] for b in batch])
 
-    batch_ids     = idx2batch[df.index.values].values
+    batch_ids     = idx2batch[df.index.values].values  # idxs into batch to get sorted by time
 
     ## calculating number of events at every time
     times, counts = np.unique(df.Time.values, return_counts=True)
@@ -273,6 +280,7 @@ def custom_collate_fn(batch):
         tens_last = None
         index_last = None
 
+    import pdb; pdb.set_trace()
 
     res = {}
     res["pat_idx"]  = pat_idx

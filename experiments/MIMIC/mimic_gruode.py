@@ -25,29 +25,30 @@ def train_gruode_mimic(simulation_name, params_dict,device, train_idx, val_idx, 
         if binned60:
             csv_file_cov = "../../Datasets/MIMIC/MIMIC_covs60.csv"
         else:
-            csv_file_cov  = "../../Datasets/MIMIC/MIMIC_covs.csv"
+            csv_file_cov = "../../Datasets/MIMIC/MIMIC_covs.csv"
 
     N = pd.read_csv(csv_file_tags)["ID"].nunique()
 
 
-    if params_dict["lambda"]==0:
+    if params_dict["lambda"] == 0:
         validation = True
         val_options = {"T_val": 75, "max_val_samples": 3}
     else:
         validation = False
         val_options = None
 
-    if params_dict["lambda"]==0:
+    if params_dict["lambda"] == 0:
         logger = Logger(f'../../Logs/Regression/{simulation_name}')
     else:
         logger = Logger(f'../../Logs/Classification/{simulation_name}')
 
 
-    data_train = data_utils.ODE_Dataset(csv_file=csv_file_path,label_file=csv_file_tags, cov_file= csv_file_cov, idx=train_idx)
+    data_train = data_utils.ODE_Dataset(csv_file=csv_file_path,label_file=csv_file_tags,
+                                        cov_file= csv_file_cov, idx=train_idx)
     data_val   = data_utils.ODE_Dataset(csv_file=csv_file_path,label_file=csv_file_tags,
                                         cov_file= csv_file_cov, idx=val_idx, validation = validation,
                                         val_options = val_options)
-    data_test   = data_utils.ODE_Dataset(csv_file=csv_file_path,label_file=csv_file_tags,
+    data_test  = data_utils.ODE_Dataset(csv_file=csv_file_path,label_file=csv_file_tags,
                                         cov_file= csv_file_cov, idx=test_idx, validation = validation,
                                         val_options = val_options)
 
@@ -60,12 +61,18 @@ def train_gruode_mimic(simulation_name, params_dict,device, train_idx, val_idx, 
 
     np.save(f"../../trained_models/{simulation_name}_params.npy",params_dict)
 
-    nnfwobj = gru_ode.NNFOwithBayesianJumps(input_size = params_dict["input_size"], hidden_size = params_dict["hidden_size"],
-                                            p_hidden = params_dict["p_hidden"], prep_hidden = params_dict["prep_hidden"],
-                                            logvar = params_dict["logvar"], mixing = params_dict["mixing"],
+    nnfwobj = gru_ode.NNFOwithBayesianJumps(input_size=params_dict["input_size"],
+                                            hidden_size=params_dict["hidden_size"],
+                                            p_hidden=params_dict["p_hidden"],
+                                            prep_hidden=params_dict["prep_hidden"],
+                                            logvar=params_dict["logvar"],
+                                            mixing=params_dict["mixing"],
                                             classification_hidden=params_dict["classification_hidden"],
-                                            cov_size = params_dict["cov_size"], cov_hidden = params_dict["cov_hidden"],
-                                            dropout_rate = params_dict["dropout_rate"],full_gru_ode= params_dict["full_gru_ode"], impute = params_dict["impute"])
+                                            cov_size=params_dict["cov_size"],
+                                            cov_hidden=params_dict["cov_hidden"],
+                                            dropout_rate=params_dict["dropout_rate"],
+                                            full_gru_ode=params_dict["full_gru_ode"],
+                                            impute=params_dict["impute"])
     nnfwobj.to(device)
 
     optimizer = torch.optim.Adam(nnfwobj.parameters(), lr=params_dict["lr"], weight_decay= params_dict["weight_decay"])

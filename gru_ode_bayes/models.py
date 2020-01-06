@@ -7,7 +7,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 
 # GRU-ODE: Neural Negative Feedback ODE with Bayesian jumps
 
-class GRUODECell(torch.nn.Module):
+class GRUODECell(torch.nn.Module):  # minimal GRU?
     def __init__(self, input_size, hidden_size, bias=True):
         """
         For p(t) modelling input_size should be 2x the x size.
@@ -38,7 +38,7 @@ class GRUODECell(torch.nn.Module):
             Updated h
         """
         z = torch.sigmoid(self.lin_xz(x) + self.lin_hz(h))
-        n = torch.tanh(self.lin_xn(x) + self.lin_hn(z * h))
+        n = torch.tanh(self.lin_xn(x) + self.lin_hn(z * h))  # TODO(helen): should this be a sigmoid?
 
         dh = (1 - z) * (n - h)
         return dh
@@ -254,7 +254,8 @@ class NNFOwithBayesianJumps(torch.nn.Module):
     """Neural Negative Feedback ODE with Bayesian jumps."""
 
     def __init__(self, input_size, hidden_size, p_hidden, prep_hidden,
-                 bias=True, cov_size=1, cov_hidden=1, classification_hidden=1, logvar=True, mixing=1, dropout_rate=0,
+                 bias=True, cov_size=1, cov_hidden=1, classification_hidden=1,
+                 logvar=True, mixing=1, dropout_rate=0,
                  full_gru_ode=False, solver="euler", impute=True, **options):
         """
         The smoother variable computes the classification loss as a weighted average of the projection of the
@@ -273,22 +274,22 @@ class NNFOwithBayesianJumps(torch.nn.Module):
         )
 
         self.classification_model = torch.nn.Sequential(
-            torch.nn.Linear(hidden_size,classification_hidden,bias=bias),
+            torch.nn.Linear(hidden_size, classification_hidden, bias=bias),
             torch.nn.ReLU(),
             torch.nn.Dropout(p=dropout_rate),
-            torch.nn.Linear(classification_hidden,1,bias=bias)
+            torch.nn.Linear(classification_hidden, 1, bias=bias)
         )
         if full_gru_ode:
             if impute is False:
-                self.gru_c   = FullGRUODECell_Autonomous(hidden_size, bias = bias)
+                self.gru_c = FullGRUODECell_Autonomous(hidden_size, bias=bias)
             else:
-                self.gru_c   = FullGRUODECell(2 * input_size, hidden_size, bias=bias)
+                self.gru_c = FullGRUODECell(2 * input_size, hidden_size, bias=bias)
 
         else:
             if impute is False:
-                self.gru_c = GRUODECell_Autonomous(hidden_size, bias= bias)
+                self.gru_c = GRUODECell_Autonomous(hidden_size, bias=bias)
             else:
-                self.gru_c   = GRUODECell(2 * input_size, hidden_size, bias=bias)
+                self.gru_c = GRUODECell(2 * input_size, hidden_size, bias=bias)
 
         if logvar:
             self.gru_obs = GRUObservationCellLogvar(input_size, hidden_size, prep_hidden, bias=bias)
@@ -309,14 +310,21 @@ class NNFOwithBayesianJumps(torch.nn.Module):
         self.store_hist = options.pop("store_hist",False)
         self.input_size = input_size
         self.logvar     = logvar
-        self.mixing     = mixing #mixing hyperparameter for loss_1 and loss_2 aggregation.
+        self.mixing     = mixing  # mixing hyperparameter for loss_1 and loss_2 aggregation.
 
         self.apply(init_weights)
 
     def ode_step(self, h, p, delta_t, current_time):
-        """Executes a single ODE step."""
-        eval_times = torch.tensor([0],device = h.device, dtype = torch.float64)
-        eval_ps = torch.tensor([0],device = h.device, dtype = torch.float32)
+        """Executes a single ODE step.
+
+        :param h: hidden state
+        :param p: parameters of the hidden state distribution
+        :param delta_t:
+        :param current_time:
+        :return: h, p, current_time, eval_times, eval_ps
+        """
+        eval_times = torch.tensor([0], device=h.device, dtype=torch.float64)
+        eval_ps = torch.tensor([0], device=h.device, dtype=torch.float32)
         if self.impute is False:
             p = torch.zeros_like(p)
             
@@ -332,21 +340,28 @@ class NNFOwithBayesianJumps(torch.nn.Module):
             p = self.p_model(h)
 
         elif self.solver == "dopri5":
-            assert self.impute==False #Dopri5 solver is only compatible with autonomous ODE.
-            solution, eval_times, eval_vals = odeint(self.gru_c,h,torch.tensor([0,delta_t]),method=self.solver,options={"store_hist":self.store_hist})
+            assert self.impute == False  # Dopri5 solver is only compatible with autonomous ODE.
+            solution, eval_times, eval_vals = odeint(self.gru_c, h, torch.tensor([0, delta_t]),
+                                                     method=self.solver,
+                                                     options={"store_hist": self.store_hist})
             if self.store_hist:
                 eval_ps = self.p_model(torch.stack([ev[0] for ev in eval_vals]))
             eval_times = torch.stack(eval_times) + current_time
-            h = solution[1,:,:]
+            h = solution[1, :, :]
             p = self.p_model(h)
-        
+
+        else:
+            raise ValueError(f"Unknown solver '{self.solver}'.")
+
         current_time += delta_t
         return h,p,current_time, eval_times, eval_ps
 
-        raise ValueError(f"Unknown solver '{self.solver}'.")
-
-    def forward(self, times, time_ptr, X, M, obs_idx, delta_t, T, cov,
-                return_path=False, smoother = False, class_criterion = None, labels=None):
+    def forward(self, times, time_ptr,
+                X, M, obs_idx, delta_t, T, cov,
+                return_path=False,
+                smoother=False,
+                class_criterion=None,
+                labels=None):
         """
         Args:
             times      np vector of observation times
@@ -368,10 +383,10 @@ class NNFOwithBayesianJumps(torch.nn.Module):
 
         p            = self.p_model(h)
         current_time = 0.0
-        counter      = 0
+        # counter      = 0
 
-        loss_1 = 0 #Pre-jump loss
-        loss_2 = 0 #Post-jump loss (KL between p_updated and the actual sample)
+        loss_1 = 0  # Pre-jump loss
+        loss_2 = 0  # Post-jump loss (KL between p_updated and the actual sample)
 
         if return_path:
             path_t = [0]
@@ -379,29 +394,29 @@ class NNFOwithBayesianJumps(torch.nn.Module):
             path_h = [h]
 
         if smoother:
-            class_loss_vec = torch.zeros(cov.shape[0],device = h.device)
-            num_evals_vec  = torch.zeros(cov.shape[0],device = h.device)
+            class_loss_vec  = torch.zeros(cov.shape[0], device=h.device)
+            num_evals_vec   = torch.zeros(cov.shape[0], device=h.device)
             class_criterion = class_criterion
             assert class_criterion is not None
 
         assert len(times) + 1 == len(time_ptr)
         assert (len(times) == 0) or (times[-1] <= T)
 
-        eval_times_total = torch.tensor([],dtype = torch.float64, device = h.device)
-        eval_vals_total  = torch.tensor([],dtype = torch.float32, device = h.device)
+        eval_times_total = torch.tensor([], dtype=torch.float64, device=h.device)
+        eval_vals_total  = torch.tensor([], dtype=torch.float32, device=h.device)
 
         for i, obs_time in enumerate(times):
             ## Propagation of the ODE until next observation
-            while current_time < (obs_time-0.001*delta_t): #0.0001 delta_t used for numerical consistency.
+            while current_time < (obs_time - 0.001 * delta_t):  # 0.0001 delta_t used for numerical consistency.
                  
                 if self.solver == "dopri5":
-                    h, p, current_time, eval_times, eval_ps = self.ode_step(h, p, obs_time-current_time, current_time)
+                    h, p, current_time, eval_times, eval_ps = self.ode_step(h, p, obs_time - current_time, current_time)
                 else:
                     h, p, current_time, eval_times, eval_ps = self.ode_step(h, p, delta_t, current_time)
                 eval_times_total = torch.cat((eval_times_total, eval_times))
                 eval_vals_total  = torch.cat((eval_vals_total, eval_ps))
 
-                #Storing the predictions.
+                # Storing the predictions.
                 if return_path:
                     path_t.append(current_time)
                     path_p.append(p)
@@ -409,7 +424,7 @@ class NNFOwithBayesianJumps(torch.nn.Module):
 
             ## Reached an observation
             start = time_ptr[i]
-            end   = time_ptr[i+1]
+            end   = time_ptr[i + 1]
 
             X_obs = X[start:end]
             M_obs = M[start:end]
@@ -419,14 +434,18 @@ class NNFOwithBayesianJumps(torch.nn.Module):
             h, losses = self.gru_obs(h, p, X_obs, M_obs, i_obs)
            
             if smoother:
-                class_loss_vec[i_obs] += class_criterion(self.classification_model(h[i_obs]),labels[i_obs]).squeeze(1)
-                num_evals_vec[i_obs] +=1
+                class_loss_vec[i_obs] += class_criterion(self.classification_model(h[i_obs]),
+                                                         labels[i_obs]).squeeze(1)
+                num_evals_vec[i_obs] += 1
             if losses.sum()!=losses.sum():
                 import ipdb;ipdb.set_trace()
-            loss_1    = loss_1+ losses.sum()
-            p         = self.p_model(h)
+            loss_1 = loss_1 + losses.sum()
+            p      = self.p_model(h)
 
-            loss_2 = loss_2 + compute_KL_loss(p_obs = p[i_obs], X_obs = X_obs, M_obs = M_obs, logvar=self.logvar)
+            loss_2 = loss_2 + compute_KL_loss(p_obs=p[i_obs],
+                                              X_obs=X_obs,
+                                              M_obs=M_obs,
+                                              logvar=self.logvar)
 
             if return_path:
                 path_t.append(obs_time)
@@ -580,7 +599,10 @@ class GRUODEBayesSeq(torch.nn.Module):
             loss_1    = loss_1 + loss_i + loss_pre.sum()
             p         = self.gru_bayes.p_model(h)
 
-            loss_2 = loss_2 + compute_KL_loss(p_obs = p[i_obs], X_obs = Xf_batch, M_obs = Mf_batch, obs_noise_std=self.obs_noise_std)
+            loss_2 = loss_2 + compute_KL_loss(p_obs=p[i_obs],
+                                              X_obs=Xf_batch,
+                                              M_obs=Mf_batch,
+                                              obs_noise_std=self.obs_noise_std)
 
             if return_path:
                 path_t.append(obs_time)
