@@ -128,5 +128,5 @@ if __name__=="__main__":
             plt.title("Example of generated trajectory")
             plt.xlabel("Time")
         #plt.savefig(f"{examples_dir}{args.prefix}_{ex}.pdf")
-        plt.savefig(f"full_example_{ex}.pdf")
+        plt.savefig(f"{examples_dir}{args.prefix}_{ex}.pdf")
         plt.close()

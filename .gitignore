@@ -7,3 +7,6 @@
 *.npy*
 state*.txt
 *.idea*
+*.csv
+experiments/Climate/Logs/
+**/.ipynb_checkpoints/

@@ -12,43 +12,49 @@ class Logger(object):
 
     def __init__(self, log_dir):
         """Create a summary writer logging to log_dir."""
-        self.writer = tf.summary.FileWriter(log_dir)
+        self.writer = tf.summary.create_file_writer(log_dir)
+        #self.writer = tf.summary.FileWriter(log_dir)
 
     def scalar_summary(self, tag, value, step):
         """Log a scalar variable."""
-        summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
-        self.writer.add_summary(summary, step)
+        with self.writer.as_default():
+            tf.summary.scalar(tag, value, step=step)
+            self.writer.flush()
 
     def save_dict(self,info,epoch):
         """
         info is a dictionary of scalars to log. Epoch is the epoch number.
         """
-        for tag, value in info.items():
-            self.scalar_summary(tag,value,epoch)
-
+        with self.writer.as_default():
+            for tag, value in info.items():
+                tf.summary.scalar(tag,value,step=epoch)
+                self.writer.flush()
 
     def image_summary(self, tag, images, step):
         """Log a list of images."""
 
-        img_summaries = []
-        for i, img in enumerate(images):
-            # Write the image to a string
-            try:
-                s = StringIO()
-            except:
-                s = BytesIO()
-            scipy.misc.toimage(img).save(s, format="png")
+        with self.writer.as_default():
+            img_summaries = []
+            for i, img in enumerate(images):
+                # Write the image to a string
+                try:
+                    s = StringIO()
+                except:
+                    s = BytesIO()
+                scipy.misc.toimage(img).save(s, format="png")
+                import pdb; pdb.set_trace()
+                tf.summary.image('%s/%d' % (tag, i), img, step)
+            self.writer.flush()
+                ## Create an Image object
+                #img_sum = tf.summary.Image(encoded_image_string=s.getvalue(),
+                #                           height=img.shape[0],
+                #                           width=img.shape[1])
+                ## Create a Summary value
+                #img_summaries.append(tf.summary.value(tag='%s/%d' % (tag, i), image=img_sum))
 
-            # Create an Image object
-            img_sum = tf.Summary.Image(encoded_image_string=s.getvalue(),
-                                       height=img.shape[0],
-                                       width=img.shape[1])
-            # Create a Summary value
-            img_summaries.append(tf.Summary.Value(tag='%s/%d' % (tag, i), image=img_sum))
-
-        # Create and write Summary
-        summary = tf.Summary(value=img_summaries)
-        self.writer.add_summary(summary, step)
+            # Create and write Summary
+            #summary = tf.summary(value=img_summaries)
+            #self.writer.add_summary(summary, step)
 
     def histo_summary(self, tag, values, step, bins=1000):
         """Log a histogram of the tensor of values."""
@@ -72,8 +78,11 @@ class Logger(object):
             hist.bucket_limit.append(edge)
         for c in counts:
             hist.bucket.append(c)
+        with self.writer.as_default():
+            tf.summary.histogram(tag, hist, step=step)
+            self.writer.flush()
 
         # Create and write Summary
-        summary = tf.Summary(value=[tf.Summary.Value(tag=tag, histo=hist)])
-        self.writer.add_summary(summary, step)
-        self.writer.flush()
+        # summary = tf.summary(value=[tf.summary.value(tag=tag, histo=hist)])
+        # self.writer.add_summary(summary, step)
+        # self.writer.flush()

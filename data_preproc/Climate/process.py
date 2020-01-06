@@ -57,7 +57,7 @@ def to_pandas(state_dir):
 
 def merge_dfs(target_dir = "./"):
     df_list = os.listdir(target_dir)
-    csv_list = [s for s in f_list if '.csv' in s]
+    csv_list = [s for s in df_list if '.csv' in s]
     state_csv_list = [s for s in csv_list if 'state' in s]
 
 
@@ -226,8 +226,8 @@ def chunk_series():
     df_clean_small[['ID', 'Time', 'Value_0', 'Value_1', 'Value_2', 'Value_3','Value_4', 'Mask_0', 'Mask_1', 'Mask_2', 'Mask_3', 'Mask_4']].to_csv("small_chunked_sporadic.csv",index=False)
 
 if __name__=="__main__":
-    #convert_all_to_pandas()
-    #merge_dfs()
+    convert_all_to_pandas()
+    merge_dfs()
     clean_and_subsample()
     make_fit_for_gru_ode()
     chunk_series()

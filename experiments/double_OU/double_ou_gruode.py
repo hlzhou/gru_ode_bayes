@@ -9,6 +9,8 @@ from sklearn.model_selection import train_test_split
 import os
 import pandas as pd
 
+import pdb; pdb.set_trace()
+
 parser = argparse.ArgumentParser(description="Running GRUODE on Double OU")
 parser.add_argument('--model_name', type=str, help="Model to use", default="double_OU_gru_ode_bayes")
 parser.add_argument('--dataset', type=str, help="Dataset CSV file", default="../../gru_ode_bayes/datasets/double_OU/double_OU.csv")

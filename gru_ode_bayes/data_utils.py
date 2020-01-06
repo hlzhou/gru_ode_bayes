@@ -273,7 +273,6 @@ def custom_collate_fn(batch):
         tens_last = None
         index_last = None
 
-
     res = {}
     res["pat_idx"]  = pat_idx
     res["times"]    = times
