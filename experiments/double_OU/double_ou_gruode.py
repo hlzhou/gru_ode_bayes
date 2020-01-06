@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import os
 import pandas as pd
+import pdb
 
 import pdb; pdb.set_trace()
 
@@ -27,6 +28,7 @@ if args.demo:
     gru_ode_bayes.paper_plotting.plot_trained_model(model_name = "double_OU_gru_ode_bayes_demo")
     exit()
 
+pdb.set_trace()
 model_name = args.model_name
 params_dict=dict()
 
@@ -67,7 +69,7 @@ params_dict["impute"]      = not args.no_impute
 
 params_dict["T"]           = T
 
-#Model parameters and the metadata of the dataset used to train the model are stored as a single dictionnary.
+# Model parameters and the metadata of the dataset used to train the model are stored as a single dictionnary.
 summary_dict ={"model_params":params_dict,"metadata":metadata}
 np.save(f"./../trained_models/{model_name}_params.npy",summary_dict)
 
@@ -75,11 +77,15 @@ dl     = DataLoader(dataset=data_train, collate_fn=data_utils.custom_collate_fn,
 dl_val = DataLoader(dataset=data_val, collate_fn=data_utils.custom_collate_fn, shuffle=False, batch_size=len(data_val),num_workers=1)
 
 ## the neural negative feedback with observation jumps
-model = gru_ode_bayes.NNFOwithBayesianJumps(input_size = params_dict["input_size"], hidden_size = params_dict["hidden_size"],
-                                        p_hidden = params_dict["p_hidden"], prep_hidden = params_dict["prep_hidden"],
-                                        logvar = params_dict["logvar"], mixing = params_dict["mixing"],
-                                        full_gru_ode = params_dict["full_gru_ode"],
-                                        solver = params_dict["solver"], impute = params_dict["impute"])
+model = gru_ode_bayes.NNFOwithBayesianJumps(input_size=params_dict["input_size"],
+                                            hidden_size=params_dict["hidden_size"],
+                                            p_hidden=params_dict["p_hidden"],
+                                            prep_hidden=params_dict["prep_hidden"],
+                                            logvar=params_dict["logvar"],
+                                            mixing=params_dict["mixing"],
+                                            full_gru_ode=params_dict["full_gru_ode"],
+                                            solver=params_dict["solver"],
+                                            impute=params_dict["impute"])
 model.to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0005)
@@ -148,9 +154,9 @@ df_res = pd.DataFrame({"Name" : [model_name], "LogLik" : [loss_val], "MSE" : [ms
 if os.path.isfile(df_file_name):
     df = pd.read_csv(df_file_name)
     df = df.append(df_res)
-    df.to_csv(df_file_name,index=False)
+    df.to_csv(df_file_name, index=False)
 else:
-    df_res.to_csv(df_file_name,index=False)
+    df_res.to_csv(df_file_name, index=False)
 
 
 model_file = f"./../trained_models/{model_name}.pt"
@@ -161,4 +167,4 @@ print(f"Saved model into '{model_file}'.")
 """
 Plotting resulting model on newly generated_data
 """
-gru_ode_bayes.paper_plotting.plot_trained_model(model_name = model_name)
+gru_ode_bayes.paper_plotting.plot_trained_model(model_name=model_name)

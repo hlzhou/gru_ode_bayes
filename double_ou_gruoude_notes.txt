@@ -1,0 +1,38 @@
+# Notes about double_ou_gruode.py
+
+* metadata: 
+	{'N': 10000,
+	 'T': 10,
+	 'delta_t': 0.05,
+	 'dual_sample_rate': 0.2,
+	 'max_lag': 0,
+	 'r_mu': [1.0, -1.0],
+	 'r_std': 0.2886751345948129,
+	 'rho': 0.99,
+	 'sample_rate': 2,
+	 'sigma': 0.1,
+	 'theta': 1.0}
+
+* Data:
+	* 10,000 samples
+	* train-test split: 80-20
+	* time jitter (to split joint observations): 0
+	* T = 10, T_val = 4, max_val_samples = 1
+
+* Model params (params_dict):
+	* input size: 	2
+	* hidden size: 	50
+	* p_hidden: 	25
+	* prep_hidden: 	25
+	* logvar: 		True
+	* mixing: 		0.0001
+	* delta_t: 		0.05
+	* dataset: 		double_OU.csv
+	* jitter: 		0
+	* full_gru_ode: True
+	* solver: 		euler
+	* impute: 		False
+	* T: 			10
+
+
+see forward(...) in NNFOwithBayesianJumps (models.py)
